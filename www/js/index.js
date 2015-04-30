@@ -1,6 +1,7 @@
 var canvas = document.getElementById('game');
 var context = canvas.getContext('2d');
 var bars = [];
+var upgrades = [];
 var player;
 var fps = 30;
 var gravity = 9;
@@ -16,8 +17,27 @@ var Bar = function(){
     this.speed = Math.random()*20 +70;
 };
 
-var Player = function(){
-    this.x = canvas.height/2;
+Bar.prototype.draw = function(){
+    context.fillStyle = "#000000"
+    context.fillRect(this.x,this.y,this.width,this.height);
+};
+
+Bar.prototype.collided = function(x,y,v){
+    var collided = 0;
+        if (x >= this.x && x <= this.x + this.width){
+            if (y <= this.y && y+v >= this.y){
+                collided = 1;
+                //collidedY = this.y-5;
+            }else if (y >= this.y + this.height && y+ v <=this.y+this.height){
+                collided = 2;
+                //collidedY = bars[i].y+this.height+1;
+            }
+        }
+    return collided;
+}
+
+var Player = function(x){
+    this.x = x;
     this.y = 10;
     this.max_jumps = 1;
     this.jumps = 1;
@@ -51,13 +71,54 @@ Player.prototype.move = function(){
         this.jumps = this.max_jumps;
         mult = 0;
     }
-}
+};
 
 Player.prototype.draw = function(){
     context.fillStyle = "red";
     context.beginPath();
     context.arc(this.x,this.y,5,0,2*Math.PI);
     context.fill();
+};
+
+
+var Upgrade = function(upgrade){
+    this.cost = upgrade.cost;
+    this.name = upgrade.name;
+    this.desc = upgrade.desc;
+    this.execute = upgrade.execute;
+    this.finished = false;
+    this.el = document.createElement("BUTTON");
+    document.getElementById("upgrades").appendChild(this.el);
+    this.el.innerHTML = this.name + " Cost: "+this.cost;
+    this.el.style.display = "none";
+    this.el.disabled = true;
+
+    var self = this;
+    this.el.onclick = function(){
+        if (score > self.cost){
+
+            score -= self.cost;
+            self.execute();
+            self.finished = true;
+        }
+    };
+};
+
+Upgrade.prototype.draw = function(){
+
+    if (score + 1000>= this.cost){
+        this.el.style.display = "block";
+    }
+
+    if (score >= this.cost){
+        this.el.disabled = false;
+    }else{
+        this.el.disabled = true;
+    }
+
+    if (this.finished){
+        this.el.style.display = "none";
+    }
 }
 
 init();
@@ -67,8 +128,23 @@ function init(){
     window.addEventListener('resize', resizeCanvas, false);
     document.onmousemove = handleMouseMove;
     document.onclick = handleMouseClick;
-    player = new Player();
     resizeCanvas();
+    player = new Player(canvas.width/2);
+
+    for (i=0;i<10;i++){
+        var up = new Upgrade({
+            cost:1000+i*1000,
+            name:"+1 Jump",
+            desc:"Add a jump",
+            execute:function(){
+                console.log("finished");
+                player.max_jumps++;
+            },
+            player:player
+        });
+        upgrades.push(up);
+    }
+
     draw();
 }
 
@@ -82,7 +158,6 @@ function run(){
       document.getElementById("multiplier").innerHTML = mult+"x";
     }, 1000/fps);
     setInterval(function(){
-       // / addBar();
         mult++;
     },1000);
 }
@@ -131,14 +206,14 @@ function moveBars(x,y){
     for (i=0;i<bars.length;i++){
         bars[i].x -= bars[i].speed/fps;
 
-        if (player.x >= bars[i].x && player.x <= bars[i].x + bars[i].width){
-            if (player.y+5 <= bars[i].y && player.y+5+player.velocity >= bars[i].y){
-                collided = 1;
-                collidedY = bars[i].y-5;
-            }else if (player.y-5 >= bars[i].y + bars[i].height && player.y-5+ player.velocity <=bars[i].y+bars[i].height){
-                collided = 2;
-                collidedY = bars[i].y+bars[i].height+1;
-            }
+        var temp_col = bars[i].collided(player.x,player.y+5,player.velocity);
+
+        if (temp_col == 1){
+            collidedY = bars[i].y-5;
+            collided = temp_col;
+        }else if (temp_col == 2){
+            collidedY = bars[i].y + bars[i].height;
+            collided = temp_col;
         }
 
         if (bars[i].x + bars[i].width > canvas.width){
@@ -159,26 +234,12 @@ function moveBars(x,y){
         if (collided == 1){
             player.jumps = player.max_jumps;
         }
-        player.velocity = 0;
+        player.velocity = -player.velocity/2;
         player.y = collidedY;
         player.falling = false;
     }else{
         player.falling = true;
     }
-}
-
-function collided(c1,x,y){
-    if (circles.length == 0){
-        return false;
-    }
-
-    for (j=0;j<circles.length;j++){
-
-        if (circles[j]!=c1 && distance(c1.x+x,c1.y+y,circles[j].x,circles[j].y) <= c1.r + circles[j].r){
-            return true;
-        }
-    }
-    return false;
 }
 
 function distance(x1,y1,x2,y2){
@@ -191,7 +252,9 @@ function draw(){
     for (i=0;i<bars.length;i++){
         var cur = bars[i];
 
-        context.fillStyle = "#000000"
-        context.fillRect(cur.x,cur.y,cur.width,cur.height);
+        cur.draw();
+    }
+    for (id in upgrades){
+        upgrades[id].draw();
     }
 }
