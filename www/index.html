@@ -9,13 +9,13 @@
         <link rel="stylesheet" type="text/css" href="css/index.css" />
         <title>Touch Run Click</title>
     </head>
-    <body style="width:100%;height:100%;padding:0px;margin:0px;">
+    <body style="width:100%;height:100%;padding:0px;margin:0px;overflow:hidden;">
         <canvas id="game" style="position:absolute;display:block;background-color:white;z-index:-10"></canvas>
         <div style="padding-left:10px;">
         <h1 id="score" style="text-align:left;margin:0px;font-size:20px;line-height:40px;vertical-align:middle"></h1>
         <h2 id="multiplier" style="text-align:left;margin:0px;font-size:15px;line-height:35px;vertical-align:middle"></h2>
         </div>
-        <div id="upgrades">
+        <div id="upgrades" style="overflow-y:scroll;max-height:250px;">
         </div>
 
         <script type="text/javascript" src="cordova.js"></script>

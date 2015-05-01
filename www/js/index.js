@@ -8,6 +8,7 @@ var gravity = 9;
 var pageX,pageY;
 var score = 0;
 var mult = 1;
+var frame = 0;
 
 var Bar = function(){
     this.x = canvas.width+10;
@@ -44,6 +45,7 @@ var Player = function(x){
     this.jump_power = 5;
     this.velocity = 0;
     this.falling = true;
+    this.auto_jump = 3039;
 };
 
 Player.prototype.jump = function(){
@@ -53,6 +55,13 @@ Player.prototype.jump = function(){
         this.falling=true;
     }
 };
+
+Player.prototype.takeAutoJump = function(frame){
+    if (this.auto_jump < 5000 && frame%(this.auto_jump) == 0){
+        this.jumps++;
+        this.jump();
+  }
+}
 
 Player.prototype.move = function(){
     if (this.falling){
@@ -89,14 +98,13 @@ var Upgrade = function(upgrade){
     this.finished = false;
     this.el = document.createElement("BUTTON");
     document.getElementById("upgrades").appendChild(this.el);
-    this.el.innerHTML = this.name + " Cost: "+this.cost;
+    this.el.innerHTML = this.name + " Cost: "+this.cost.toFixed(0);
     this.el.style.display = "none";
     this.el.disabled = true;
 
     var self = this;
     this.el.onclick = function(){
         if (score > self.cost){
-
             score -= self.cost;
             self.execute();
             self.finished = true;
@@ -130,19 +138,56 @@ function init(){
     document.onclick = handleMouseClick;
     resizeCanvas();
     player = new Player(canvas.width/2);
-
-    for (i=0;i<10;i++){
-        var up = new Upgrade({
-            cost:1000+i*1000,
+    var base_cost = 1000;
+    for (i=0;i<100;i++){
+        var up1 = new Upgrade({
+            cost: base_cost,
             name:"+1 Jump",
             desc:"Add a jump",
             execute:function(){
-                console.log("finished");
                 player.max_jumps++;
             },
             player:player
         });
-        upgrades.push(up);
+        var up2 = new Upgrade({
+            cost: base_cost*2,
+            name:"+ Jump Power",
+            desc:"Add more power to your jump",
+            execute:function(){
+                player.jump_power++;
+            },
+            player:player
+        });
+
+        upgrades.push(up1);
+        upgrades.push(up2);
+        base_cost+= (i+1)*1000;
+    }
+
+    base_cost = 1000;
+    for( i=0;i<100;i++){
+        var up3= new Upgrade({
+            cost: Math.pow(base_cost,1.5),
+            name:"+ Auto Jump",
+            desc:"Jump automatically",
+            execute:function(){
+                player.auto_jump-=(fps);
+                if (player.auto_jump < fps){
+                    player.auto_jump = fps;
+                }
+            }
+        });
+        var up4= new Upgrade({
+            cost: Math.pow(base_cost,2.5),
+            name:"+ Gravity",
+            desc:"Increase Gravity",
+            execute:function(){
+                gravity+=2;
+            }
+        });
+        upgrades.push(up3);
+        upgrades.push(up4);
+        base_cost+= (i+1)*1000;
     }
 
     draw();
@@ -153,9 +198,11 @@ function run(){
       moveBars(pageX,pageY);
       player.move();
       draw();
-      score += 1*mult;
-      document.getElementById("score").innerHTML = score;
+      score += (gravity)*mult;
+      document.getElementById("score").innerHTML = score.toFixed(0);
       document.getElementById("multiplier").innerHTML = mult+"x";
+      frame += fps;
+      player.takeAutoJump(frame);
     }, 1000/fps);
     setInterval(function(){
         mult++;
